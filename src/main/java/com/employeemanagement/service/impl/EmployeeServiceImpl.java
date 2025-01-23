@@ -12,12 +12,12 @@ import com.employeemanagement.service.EmployeeService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -30,26 +30,26 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public ResponseEntity<ApiResponseDto<?>> saveEmployee(EmployeeDto employeeDto) throws ApplicationException {
-        employeeRepository.findByEmail(employeeDto.getEmail()).orElseThrow(
-                () -> new ValidationException("The provided employee email address is already registered. Please use a different email.", ApplicationErrorCodes.ERR_EMAIL_EXISTS)
-        );
+        if (employeeRepository.findByEmail(employeeDto.getEmail()).isPresent()) {
+            throw new ValidationException("The provided employee email address: " + employeeDto.getEmail() + " is already registered. Please use a different email.", ApplicationErrorCodes.ERR_EMAIL_EXISTS);
+        }
 
-        employeeRepository.findByPhoneNumber(employeeDto.getPhoneNumber()).orElseThrow(
-                () -> new ValidationException("The provided employee phone number is already registered. Please use a different phone number.", ApplicationErrorCodes.ERR_PHONE_EXISTS)
-        );
+        if (employeeRepository.findByPhoneNumber(employeeDto.getPhoneNumber()).isPresent()) {
+            throw new ValidationException("The provided employee phone number: " + employeeDto.getPhoneNumber() + " is already registered. Please use a different phone number.", ApplicationErrorCodes.ERR_PHONE_EXISTS);
+        }
+
         Employee employee = modelMapper.map(employeeDto, Employee.class);
         try {
             employeeRepository.save(employee);
         } catch (Exception e) {
-            throw throwServiceException();
+            throw ServiceException();
         }
         return new ResponseEntity<>(new ApiResponseDto<>("Employee details saved successfully."), HttpStatus.CREATED);
     }
 
     @Override
     public ResponseEntity<ApiResponseDto<?>> getEmployee(Long empId) throws ApplicationException {
-        Employee employee = employeeRepository.findById(empId).orElseThrow(
-                () -> new ValidationException("No records found for the provided employee ID: " + empId, ApplicationErrorCodes.NO_RECORDS_FOUND));
+        Employee employee = employeeRepository.findById(empId).orElseThrow(() -> new ValidationException("No records found for the provided employee ID: " + empId, ApplicationErrorCodes.NO_RECORDS_FOUND));
         EmployeeDto employeeDto = modelMapper.map(employee, EmployeeDto.class);
         return new ResponseEntity<>(new ApiResponseDto<>(employeeDto), HttpStatus.OK);
     }
@@ -70,15 +70,41 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public ResponseEntity<ApiResponseDto<?>> updateEmployee(Long empId, EmployeeDto employeeDto) throws ApplicationException {
-        return null;
+        Employee employee = employeeRepository.findById(empId).orElseThrow(() -> new ValidationException("No records found for the provided employee ID: " + empId, ApplicationErrorCodes.NO_RECORDS_FOUND));
+
+        Optional<Employee> empList = employeeRepository.findByEmail(employeeDto.getEmail());
+        if (empList.isPresent() && !empList.get().getId().equals(empId)) {
+            throw new ValidationException("The provided employee email address: " + employeeDto.getEmail() + " is already registered. Please use a different email.", ApplicationErrorCodes.ERR_EMAIL_EXISTS);
+        }
+
+        Optional<Employee> employeeList = employeeRepository.findByPhoneNumber(employeeDto.getPhoneNumber());
+        if (employeeList.isPresent() && !employeeList.get().getId().equals(empId)) {
+            throw new ValidationException("The provided employee phone number: " + employeeDto.getPhoneNumber() + " is already registered. Please use a different phone number.", ApplicationErrorCodes.ERR_PHONE_EXISTS);
+        }
+
+        Employee emp = modelMapper.map(employeeDto, Employee.class);
+        try {
+            emp.setId(employee.getId());
+            employeeRepository.save(emp);
+        } catch (Exception e) {
+            throw ServiceException();
+        }
+        return new ResponseEntity<>(new ApiResponseDto<>("Employee details updated successfully."), HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<ApiResponseDto<?>> deleteEmployee(Long empId) throws ApplicationException {
-        return null;
+        employeeRepository.findById(empId).orElseThrow(() -> new ValidationException("No records found for the provided employee ID: " + empId, ApplicationErrorCodes.NO_RECORDS_FOUND));
+        try {
+            employeeRepository.deleteById(empId);
+        } catch (Exception ex) {
+            throw ServiceException();
+        }
+
+        return new ResponseEntity<>(new ApiResponseDto<>("Employee details deleted successfully."), HttpStatus.OK);
     }
 
-    private static ServiceException throwServiceException() {
+    private static ServiceException ServiceException() {
         return new ServiceException("An unexpected error occurred while processing your request. Please try again later.", ApplicationErrorCodes.SERVICE_EXCEPTION_ERROR);
     }
 }

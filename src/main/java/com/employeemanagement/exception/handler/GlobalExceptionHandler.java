@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 
@@ -22,25 +23,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetailsDto> handleGlobalException(Exception ex, WebRequest webRequest) {
-        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDate.now(), ex.getMessage(), ApplicationErrorCodes.UNEXPECTED_ERROR, webRequest.getDescription(false));
+        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ex.getMessage(), ApplicationErrorCodes.UNEXPECTED_ERROR, webRequest.getDescription(false));
         return ResponseEntity.badRequest().body(errorDetailsDto);
     }
 
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ErrorDetailsDto> handleApplicationException(ApplicationException ex, WebRequest webRequest) {
-        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDate.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
+        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ex.getMessage(), ApplicationErrorCodes.APPLICATION_UNEXPECTED_ERROR, webRequest.getDescription(false));
         return ResponseEntity.badRequest().body(errorDetailsDto);
     }
 
     @ExceptionHandler(ServiceException.class)
     public ResponseEntity<ErrorDetailsDto> handleServiceException(ServiceException ex, WebRequest webRequest) {
-        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDate.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
+        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
         return ResponseEntity.badRequest().body(errorDetailsDto);
     }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ErrorDetailsDto> handleValidationException(ValidationException ex, WebRequest webRequest) {
-        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDate.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
+        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
         return ResponseEntity.badRequest().body(errorDetailsDto);
     }
 
@@ -53,7 +54,7 @@ public class GlobalExceptionHandler {
             String message = error.getDefaultMessage();
             errorMap.put(fieldName, message);
         }
-        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDate.now(), errorMap.toString(), ApplicationErrorCodes.BEAN_VALIDATION_EXCEPTION, webRequest.getDescription(false));
+        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ApplicationErrorCodes.BEAN_VALIDATION_EXCEPTION, webRequest.getDescription(false), errorMap);
         return ResponseEntity.badRequest().body(errorDetailsDto);
     }
 

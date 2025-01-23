@@ -1,29 +1,38 @@
 package com.employeemanagement.dto;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 
 public class ErrorDetailsDto {
 
-    private LocalDate timestamp;
+    private LocalDateTime timestamp;
     private String message;
     private String errorCode;
     private String path;
+    HashMap<String, String> error;
 
     public ErrorDetailsDto() {
     }
 
-    public ErrorDetailsDto(LocalDate timestamp, String message, String errorCode, String path) {
+    public ErrorDetailsDto(LocalDateTime timestamp, String message, String errorCode, String path) {
         this.timestamp = timestamp;
         this.message = message;
         this.errorCode = errorCode;
         this.path = path;
     }
 
-    public LocalDate getTimestamp() {
+    public ErrorDetailsDto(LocalDateTime timestamp, String errorCode, String path, HashMap<String, String> error) {
+        this.timestamp = timestamp;
+        this.errorCode = errorCode;
+        this.path = path;
+        this.error = error;
+    }
+
+    public LocalDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDate timestamp) {
+    public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -49,5 +58,13 @@ public class ErrorDetailsDto {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public HashMap<String, String> getError() {
+        return error;
+    }
+
+    public void setError(HashMap<String, String> error) {
+        this.error = error;
     }
 }
