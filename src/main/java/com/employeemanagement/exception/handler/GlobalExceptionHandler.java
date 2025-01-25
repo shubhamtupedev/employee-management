@@ -41,7 +41,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ErrorDetailsDto> handleValidationException(ValidationException ex, WebRequest webRequest) {
-        ErrorDetailsDto errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
+        ErrorDetailsDto errorDetailsDto = null;
+        if (ex.getMessage() != null) {
+            errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), ex.getMessage(), ex.getErrorCode(), webRequest.getDescription(false));
+        } else {
+            errorDetailsDto = new ErrorDetailsDto(LocalDateTime.now(), null, ApplicationErrorCodes.BEAN_VALIDATION_EXCEPTION, webRequest.getDescription(false), ex.getErrors());
+        }
         return ResponseEntity.badRequest().body(errorDetailsDto);
     }
 

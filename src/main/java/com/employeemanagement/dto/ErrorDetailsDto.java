@@ -1,8 +1,12 @@
 package com.employeemanagement.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorDetailsDto {
 
     private LocalDateTime timestamp;
@@ -10,6 +14,7 @@ public class ErrorDetailsDto {
     private String errorCode;
     private String path;
     HashMap<String, String> error;
+    HashMap<String, List<String>> errors;
 
     public ErrorDetailsDto() {
     }
@@ -26,6 +31,14 @@ public class ErrorDetailsDto {
         this.errorCode = errorCode;
         this.path = path;
         this.error = error;
+    }
+
+    public ErrorDetailsDto(LocalDateTime timestamp, String message, String errorCode, String path, HashMap<String, List<String>> errors) {
+        this.timestamp = timestamp;
+        this.message = message;
+        this.errorCode = errorCode;
+        this.path = path;
+        this.errors = errors;
     }
 
     public LocalDateTime getTimestamp() {
@@ -66,5 +79,13 @@ public class ErrorDetailsDto {
 
     public void setError(HashMap<String, String> error) {
         this.error = error;
+    }
+
+    public HashMap<String, List<String>> getErrors() {
+        return errors;
+    }
+
+    public void setErrors(HashMap<String, List<String>> errors) {
+        this.errors = errors;
     }
 }
