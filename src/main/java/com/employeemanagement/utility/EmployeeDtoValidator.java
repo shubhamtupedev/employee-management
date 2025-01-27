@@ -11,7 +11,7 @@ public class EmployeeDtoValidator {
 
     public List<String> validateEmployeeDto(EmployeeDto employeeDto) {
         List<String> errorList = new ArrayList<>();
-        String validationNameMessage = validateName(employeeDto.getName());
+        String validationNameMessage = validateName(employeeDto.getFirstName());
         if (validationNameMessage != null) {
             errorList.add("name :" + validationNameMessage);
         }

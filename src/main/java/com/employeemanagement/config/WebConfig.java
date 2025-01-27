@@ -4,6 +4,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
+
+import java.util.List;
 
 @Configuration
 public class WebConfig {
@@ -20,5 +23,12 @@ public class WebConfig {
                         .allowCredentials(true); // Allow credentials (optional)
             }
         };
+    }
+
+    @Bean
+    public SimpleMessageConverter converter() {
+        SimpleMessageConverter converter = new SimpleMessageConverter();
+        converter.setAllowedListPatterns(List.of("xyz.test.common.*", "java.util.*"));
+        return converter;
     }
 }

@@ -1,24 +1,28 @@
 package com.employeemanagement.service.impl;
 
+import com.employeemanagement.common.ApplicationBeans;
 import com.employeemanagement.common.ApplicationCommonConstant;
 import com.employeemanagement.common.ApplicationErrorCodes;
 import com.employeemanagement.dto.ApiResponseDto;
 import com.employeemanagement.dto.EmployeeDto;
+import com.employeemanagement.entity.Address;
+import com.employeemanagement.entity.AsyncAudit;
+import com.employeemanagement.entity.Department;
 import com.employeemanagement.entity.Employee;
 import com.employeemanagement.exception.ApplicationException;
 import com.employeemanagement.exception.ServiceException;
 import com.employeemanagement.exception.ValidationException;
+import com.employeemanagement.repository.AddressRepository;
+import com.employeemanagement.repository.AsyncAuditRepository;
+import com.employeemanagement.repository.DepartmentRepository;
 import com.employeemanagement.repository.EmployeeRepository;
 import com.employeemanagement.service.EmployeeService;
 import com.employeemanagement.utility.BulkValidatorService;
 import com.employeemanagement.utility.ExcelFileReader;
 import com.employeemanagement.utility.FileUtils;
-import com.github.javafaker.Faker;
-import jakarta.validation.Validator;
+import com.employeemanagement.utility.NotificationProducer;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,8 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -37,10 +40,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     private EmployeeRepository employeeRepository;
 
     @Autowired
+    private AddressRepository addressRepository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Autowired
     private ModelMapper modelMapper;
 
     @Autowired
     private BulkValidatorService bulkValidatorService;
+
+    @Autowired
+    private NotificationProducer notificationProducer;
+
+    @Autowired
+    private AsyncAuditRepository asyncAuditRepository;
 
     @Override
     public ResponseEntity<ApiResponseDto<?>> saveEmployee(EmployeeDto employeeDto) throws ApplicationException {
@@ -53,8 +68,29 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         Employee employee = modelMapper.map(employeeDto, Employee.class);
+        AsyncAudit asyncAudit = new AsyncAudit();
         try {
+            List<Employee> employeeList = new ArrayList<>();
+            Department department = employee.getDepartment();
+            employeeList.add(employee);
+            department.setEmployee(employeeList);
+
+            Address address = employee.getAddress();
+            address.setEmployee(employee);
             employeeRepository.save(employee);
+            addressRepository.save(address);
+            departmentRepository.save(department);
+
+            asyncAudit.setProcessName("sendNotification");
+            asyncAudit.setProcessStartTime(LocalDateTime.now());
+            asyncAudit.setQueueName(ApplicationBeans.QUEUE_NAME);
+            asyncAuditRepository.save(asyncAudit);
+
+            HashMap<String, String> notificationDataMap = new HashMap<>();
+            notificationDataMap.put("personalEmail", employee.getPersonalEmail());
+            notificationDataMap.put("phoneNumber", employee.getPhoneNumber());
+            notificationDataMap.put("auditId", asyncAudit.getId().toString());
+            notificationProducer.sendNotification(notificationDataMap);
         } catch (Exception e) {
             throw ServiceException();
         }
@@ -147,7 +183,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             if (row.getCell(2) != null) {
                 phoneNumber = row.getCell(2).getStringCellValue();
             }
-            EmployeeDto employeeDto = new EmployeeDto(null, name, email, phoneNumber);
+//            EmployeeDto employeeDto = new EmployeeDto(null, name, email, phoneNumber);
+            EmployeeDto employeeDto = new EmployeeDto();
             employeeDtoList.add(employeeDto);
         }
 
@@ -177,66 +214,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         double bulkSaveExecutionTimeInSeconds = (bulkSaveEndTime - bulkSaveStartTime) / 1000.0;
         System.out.println("Bulk save execution time: " + bulkSaveExecutionTimeInSeconds + " seconds");
         System.out.println("=========================================================================");
-
-        Faker faker = new Faker();
-
-        // Set to track unique emails and avoid duplicates
-        Set<String> emailSet = new HashSet<>();
-        Set<String> phoneSet = new HashSet<>();
-
-        // Create a workbook and sheet for writing data
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet2 = workbook.createSheet("Employee Data");
-
-        // Create header row
-        Row header = sheet2.createRow(0);
-        header.createCell(0).setCellValue("Name");
-        header.createCell(1).setCellValue("Email");
-        header.createCell(2).setCellValue("Phone Number");
-
-        // Generate 100,000 unique records
-        int recordCount = 100000;
-        for (int i = 1; i <= recordCount; i++) {
-            // Generate fake employee data
-            String firstName = faker.name().firstName();
-            String middleName = faker.name().firstName();
-            String lastName = faker.name().lastName();
-            String fullname = firstName + " " + middleName + " " + lastName;
-
-            String fakeemail;
-            // Ensure email uniqueness
-            do {
-                fakeemail = faker.internet().emailAddress();
-            } while (emailSet.contains(fakeemail));
-            emailSet.add(fakeemail);
-
-            String fakePhoneNumber;
-            do {
-                fakePhoneNumber = "9" + faker.number().digits(9); // Starts with 9 and 9 random digits
-            } while (phoneSet.contains(fakePhoneNumber));
-            phoneSet.add(fakePhoneNumber);
-
-            // Create a new row for each record
-            Row row = sheet2.createRow(i);
-            row.createCell(0).setCellValue(fullname);
-            row.createCell(1).setCellValue(fakeemail);
-            row.createCell(2).setCellValue(fakePhoneNumber);
-        }
-
-        // Write to Excel file
-        try {
-            FileOutputStream fileOut = new FileOutputStream("employee_data_100k.xlsx");
-            System.out.println();
-            System.out.println("true");
-            workbook.write(fileOut);
-            workbook.close();
-            fileOut.close();
-            System.out.println("Excel file with 100,000 records has been created.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         String message = String.format("Successfully processed bulk employee details in %.1f seconds.", bulkSaveExecutionTimeInSeconds);
         return new ResponseEntity<>(new ApiResponseDto<>(message), HttpStatus.CREATED);
