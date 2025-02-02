@@ -1,0 +1,4 @@
+DELETE FROM sys_param
+INSERT INTO sys_param (code,value,description,type,created_date, created_by) Values ('COMPANY_EMAIL','shubham.tupe2597@gmail.com', 'Company email','String', NOW(), 'SYSTEM')
+INSERT INTO sys_param (code,value,description,type,created_date, created_by) Values ('COMPANY_NAME','Accelya Solutions Pvt Ltd.', 'Name of company','String', NOW(), 'SYSTEM')
+INSERT INTO sys_param (code,value,description,type,created_date, created_by) Values ('LOGIN_URL','http://localhost:1000/api/v1/auth/login', 'login url','String', NOW(), 'SYSTEM')
